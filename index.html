@@ -9,33 +9,50 @@
     <h1>Termékeink</h1>
     <div id="products-container">Betöltés...</div>
 
-    <script>
-        // 2. Ide írd be a saját adataidat a Supabase-ből
-        const SUPABASE_URL = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1c2ZiYnVrZ21rbGl6a2lybGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDY2OTAsImV4cCI6MjA4ODI4MjY5MH0.PbooL1rOeiH9zYdspxfTOPs-j6E6ad0xJR6Sf8xusgk';
+    
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+    // 1. Az adatok (ezek maradjanak a te adataid)
+    const projectUrl = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA'; 
+    const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1c2ZiYnVrZ21rbGl6a2lybGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDY2OTAsImV4cCI6MjA4ODI4MjY5MH0.PbooL1rOeiH9zYdspxfTOPs-j6E6ad0xJR6Sf8xusgk'; 
 
-        async function getProducts() {
-            // 3. Lekérjük a 'products' tábla összes sorát
-            const { data, error } = await supabase.from('products').select('*');
+    // 2. JAVÍTÁS: Itt a változó nevét 'supabaseClient'-re írjuk át!
+    // Így nem ütközik a 'supabase' könyvtárnévvel.
+    const supabaseClient = supabase.createClient(projectUrl, anonKey);
 
-            if (error) {
-                console.error('Hiba:', error);
+    async function getProducts() {
+        try {
+            // 3. Itt is a 'supabaseClient'-et használjuk a lekéréshez
+            const { data, error } = await supabaseClient
+                .from('products')
+                .select('*');
+
+            if (error) throw error;
+
+            const container = document.getElementById('products-container');
+            
+            if (!data || data.length === 0) {
+                container.innerHTML = "Nincsenek termékek az adatbázisban.";
                 return;
             }
 
-            // 4. Megjelenítjük a HTML-ben
-            const container = document.getElementById('products-container');
+            // Megjelenítés
             container.innerHTML = data.map(p => `
-                <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                <div style="border: 1px solid #ccc; margin: 10px; padding: 10px; border-radius: 8px;">
                     <h3>${p.name}</h3>
                     <p>Ár: ${p.price} Ft</p>
                 </div>
             `).join('');
-        }
 
-        getProducts();
-    </script>
+        } catch (err) {
+            console.error("Hiba történt:", err);
+            document.getElementById('products-container').innerHTML = "Hiba az adatok lekérésekor: " + err.message;
+        }
+    }
+
+    getProducts();
+</script>        
+
+
 </body>
 </html>
