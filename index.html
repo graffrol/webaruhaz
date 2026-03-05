@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Szuper Webshop</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Termékeink</h1>
+    <div id="products-container">Betöltés...</div>
+
+    <script>
+        // 2. Ide írd be a saját adataidat a Supabase-ből
+        const SUPABASE_URL = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1c2ZiYnVrZ21rbGl6a2lybGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MDY2OTAsImV4cCI6MjA4ODI4MjY5MH0.PbooL1rOeiH9zYdspxfTOPs-j6E6ad0xJR6Sf8xusgk';
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function getProducts() {
+            // 3. Lekérjük a 'products' tábla összes sorát
+            const { data, error } = await supabase.from('products').select('*');
+
+            if (error) {
+                console.error('Hiba:', error);
+                return;
+            }
+
+            // 4. Megjelenítjük a HTML-ben
+            const container = document.getElementById('products-container');
+            container.innerHTML = data.map(p => `
+                <div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">
+                    <h3>${p.name}</h3>
+                    <p>Ár: ${p.price} Ft</p>
+                </div>
+            `).join('');
+        }
+
+        getProducts();
+    </script>
+</body>
+</html>
