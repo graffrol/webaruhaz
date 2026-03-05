@@ -3,261 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szuper Webshop - Reszponzív & Intelligens Kosár</title>
+    <title>Szuper Webshop - Email Auth</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --dark: #2c3e50;
-            --primary: #3498db;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --light: #f8f9fa;
-        }
-
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--light); margin: 0; padding: 0; overflow-x: hidden; }
+        :root { --dark: #2c3e50; --primary: #3498db; --success: #27ae60; --danger: #e74c3c; --light: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; padding: 0; }
         
-        /* HEADER */
-        header {
-            background-color: var(--dark); color: white; padding: 1rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
+        header { background: var(--dark); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .nav-btns { display: flex; gap: 15px; align-items: center; }
+        .btn-auth { background: #556677; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 
-        .cart-icon-btn {
-            background: none; border: none; color: white; font-size: 1.1rem; cursor: pointer; 
-            position: relative; display: flex; align-items: center; gap: 8px; padding: 10px;
-        }
+        /* LOGIN MODAL */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 350px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-content input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .auth-submit-btn { background: var(--primary); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .switch-auth { text-align: center; margin-top: 15px; font-size: 0.9rem; color: #666; cursor: pointer; text-decoration: underline; }
 
-        #cart-count { background: var(--danger); color: white; padding: 2px 8px; border-radius: 20px; font-size: 0.8rem; min-width: 15px; text-align: center; }
-
-        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
-        h1 { text-align: center; color: var(--dark); margin-bottom: 40px; }
-
-        /* TERMÉK RÁCS - AUTOMATIKUS RESZPONZIVITÁS */
-        #products-container { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 25px; 
-        }
-
-        .product-card { 
-            background: white; border-radius: 12px; overflow: hidden; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; 
-            flex-direction: column; border: 1px solid #eee; transition: 0.3s; 
-        }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .product-image { width: 100%; height: 200px; object-fit: cover; }
-        .product-info { padding: 20px; text-align: center; display: flex; flex-direction: column; flex-grow: 1; }
-        .product-name { margin: 0 0 10px 0; font-size: 1.2rem; }
-        .product-price { color: var(--success); font-weight: bold; font-size: 1.3rem; margin-bottom: 15px; }
-        
-        .buy-button { 
-            background-color: var(--primary); color: white; border: none; 
-            padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; 
-            font-weight: bold; transition: 0.2s; margin-top: auto;
-        }
-        .buy-button:hover { background-color: #2980b9; }
-
-        /* KOSÁR OLDALSÁV - MOBILBARÁT */
-        #cart-sidebar {
-            position: fixed; top: 0; right: -400px; 
-            width: 380px; max-width: 90%; height: 100%;
-            background: white; box-shadow: -10px 0 30px rgba(0,0,0,0.2);
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; 
-            display: flex; flex-direction: column;
-        }
+        /* KOSÁR ÉS TERMÉKEK (Maradt a régi, bevált stílus) */
+        #cart-sidebar { position: fixed; top: 0; right: -400px; width: 380px; max-width: 90%; height: 100%; background: white; box-shadow: -10px 0 30px rgba(0,0,0,0.2); transition: 0.4s; z-index: 1000; display: flex; flex-direction: column; }
         #cart-sidebar.open { right: 0; }
-
-        .cart-header { padding: 25px; background: var(--dark); color: white; display: flex; justify-content: space-between; align-items: center; }
-        .close-cart { cursor: pointer; font-size: 2rem; line-height: 1; }
-
         #cart-items { flex-grow: 1; overflow-y: auto; padding: 20px; }
-        
-        .cart-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; 
-        }
-        .qty-controls { display: flex; align-items: center; gap: 10px; }
-        .qty-controls button { 
-            width: 25px; height: 25px; border-radius: 5px; border: 1px solid #ddd; 
-            background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .remove-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 1.2rem; margin-left: 10px; }
-
-        .cart-footer { padding: 25px; border-top: 2px solid #eee; background: #fafafa; }
-        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; }
-        .clear-btn { background: #95a5a6; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .clear-btn:hover { background: #7f8c8d; }
-
-        /* Sötétítő réteg, amikor nyitva a kosár (opcionális, de profibb) */
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); visibility: hidden; opacity: 0;
-            transition: 0.3s; z-index: 999;
-        }
-        #overlay.active { visibility: visible; opacity: 1; }
-
+        .cart-footer { padding: 20px; background: #eee; }
+        #products-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; display: flex; flex-direction: column; transition: 0.3s; }
+        .product-card:hover { transform: translateY(-5px); }
+        .product-image { width: 100%; height: 180px; object-fit: cover; }
+        .product-info { padding: 15px; flex-grow: 1; }
+        .buy-button { background: var(--primary); color: white; border: none; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; }
+        #checkout-form { display: none; margin-top: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-    <div id="overlay" onclick="toggleCart()"></div>
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeAuth()">×</span>
+            <h2 id="auth-title" style="text-align:center">Bejelentkezés</h2>
+            
+            <input type="email" id="auth-email" placeholder="E-mail cím">
+            <input type="password" id="auth-password" placeholder="Jelszó">
+            
+            <button id="auth-main-btn" class="auth-submit-btn" onclick="handleAuth()">Bejelentkezés</button>
+            <p id="auth-switch" class="switch-auth" onclick="toggleAuthMode()">Még nincs fiókom, regisztrálok</p>
+        </div>
+    </div>
 
     <header>
         <div style="font-size: 1.5rem; font-weight: bold;">SzuperWebshop</div>
-        <button id="cart-open-btn" class="cart-icon-btn" onclick="toggleCart()">
-            🛒 Kosár <span id="cart-count">0</span>
-        </button>
+        <div class="nav-btns">
+            <span id="user-display" style="font-size: 0.9rem;"></span>
+            <button id="nav-auth-btn" class="btn-auth" onclick="openAuth()">Bejelentkezés</button>
+            <button class="btn-auth" style="background:var(--primary)" onclick="toggleCart()">🛒 <span id="cart-count">0</span></button>
+        </div>
     </header>
 
     <div id="cart-sidebar">
-        <div class="cart-header">
-            <h3 style="margin:0">Kosarad</h3>
-            <span class="close-cart" onclick="toggleCart()">×</span>
+        <div style="padding:20px; background:var(--dark); color:white; display:flex; justify-content:space-between">
+            <h3 style="margin:0">Kosár</h3>
+            <span style="cursor:pointer; font-size: 24px;" onclick="toggleCart()">×</span>
         </div>
-        <div id="cart-items">
-            </div>
+        <div id="cart-items"></div>
         <div class="cart-footer">
-            <div class="total-row">
-                <span>Összesen:</span>
-                <span id="cart-total">0 Ft</span>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:15px">
+                <span>Összesen:</span><span id="cart-total">0 Ft</span>
             </div>
-            <button class="clear-btn" onclick="clearCart()">Kosár kiürítése</button>
+            <button id="order-btn" class="buy-button" style="background:var(--success)" onclick="showCheckout()">Megrendelés</button>
+
+            <div id="checkout-form">
+                <h4>Szállítási adatok</h4>
+                <input type="text" id="c-name" placeholder="Teljes név">
+                <input type="text" id="c-addr" placeholder="Cím">
+                <button class="buy-button" style="background:var(--dark)" onclick="finishOrder()">Rendelés elküldése</button>
+            </div>
         </div>
     </div>
 
-    <div class="container">
-        <h1>Kiemelt Ajánlatok</h1>
-        <div id="products-container">
-            <p style="text-align:center; grid-column: 1/-1;">Termékek betöltése...</p>
-        </div>
-    </div>
+    <div id="products-container"></div>
 
     <script>
-        // --- CONFIG ---
-        const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA'; 
+        const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let cart = [];
+        let isLoginMode = true;
 
-        // ADATOK LEKÉRÉSE
-        async function fetchProducts() {
-            try {
-                const { data, error } = await supabaseClient.from('products').select('*').order('id', { ascending: true });
-                if (error) throw error;
-                displayProducts(data);
-            } catch (err) { console.error(err); }
+        // --- AUTH KEZELÉS ---
+        function openAuth() { document.getElementById('auth-modal').style.display = 'flex'; }
+        function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('auth-title').innerText = isLoginMode ? "Bejelentkezés" : "Regisztráció";
+            document.getElementById('auth-main-btn').innerText = isLoginMode ? "Bejelentkezés" : "Regisztráció";
+            document.getElementById('auth-switch').innerText = isLoginMode ? "Még nincs fiókom, regisztrálok" : "Már van fiókom, belépek";
         }
 
-        function displayProducts(products) {
-            const container = document.getElementById('products-container');
-            const fixedImages = [
-                "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=600",
-                "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600"
-            ];
+        async function handleAuth() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
 
-            container.innerHTML = products.map((product, index) => `
+            if (isLoginMode) {
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) alert("Hiba: " + error.message); else closeAuth();
+            } else {
+                const { error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) alert("Hiba: " + error.message); else alert("Regisztráció sikeres! Ellenőrizd az e-mailedet a megerősítéshez.");
+            }
+        }
+
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            const user = session?.user;
+            const navAuthBtn = document.getElementById('nav-auth-btn');
+            const userDisplay = document.getElementById('user-display');
+
+            if (user) {
+                userDisplay.innerText = user.email;
+                navAuthBtn.innerText = "Kijelentkezés";
+                navAuthBtn.onclick = () => supabaseClient.auth.signOut();
+                document.getElementById('c-name').value = ""; // Itt tölthetnéd be a user nevét ha lenne mentve
+            } else {
+                userDisplay.innerText = "";
+                navAuthBtn.innerText = "Bejelentkezés";
+                navAuthBtn.onclick = openAuth;
+            }
+        });
+
+        // --- BOLT LOGIKA ---
+        async function loadProducts() {
+            const { data } = await supabaseClient.from('products').select('*').order('id', {ascending: true});
+            const imgUrls = [
+                "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?w=400",
+                "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?w=400",
+                "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?w=400"
+            ];
+            document.getElementById('products-container').innerHTML = data.map((p, i) => `
                 <div class="product-card">
-                    <img class="product-image" src="${fixedImages[index % 3]}" alt="${product.name}">
+                    <img src="${imgUrls[i%3]}" class="product-image">
                     <div class="product-info">
-                        <h3 class="product-name">${product.name}</h3>
-                        <p class="product-price">${Number(product.price).toLocaleString()} Ft</p>
-                        <button class="buy-button" onclick="addToCart('${product.id}', '${product.name}', ${product.price})">Kosárba teszem</button>
+                        <h3>${p.name}</h3>
+                        <p class="product-price">${Number(p.price).toLocaleString()} Ft</p>
+                        <button class="buy-button" onclick="addToCart('${p.id}','${p.name}',${p.price})">Kosárba</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // KOSÁR LOGIKA
-        function toggleCart() {
-            const sidebar = document.getElementById('cart-sidebar');
-            const overlay = document.getElementById('overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-        }
-
-        // KIKATTINTÁSRA BEZÁRÁS LOGIKÁJA
-        window.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('cart-sidebar');
-            const cartBtn = document.getElementById('cart-open-btn');
-            
-            // Ha a kosár nyitva van ÉS nem a kosárra kattintottál ÉS nem a nyitógombra
-            if (sidebar.classList.contains('open') && 
-                !sidebar.contains(e.target) && 
-                !cartBtn.contains(e.target)) {
-                toggleCart();
-            }
-        });
+        function toggleCart() { document.getElementById('cart-sidebar').classList.toggle('open'); }
 
         function addToCart(id, name, price) {
-            const existingItem = cart.find(item => item.id === id);
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({ id, name, price, quantity: 1 });
-            }
-            updateCartUI();
-            if (!document.getElementById('cart-sidebar').classList.contains('open')) {
-                toggleCart();
-            }
+            const item = cart.find(i => i.id === id);
+            if (item) item.qty++; else cart.push({id, name, price, qty: 1});
+            updateCart();
+            if(!document.getElementById('cart-sidebar').classList.contains('open')) toggleCart();
         }
 
-        function changeQuantity(id, delta) {
-            const item = cart.find(item => item.id === id);
-            if (item) {
-                item.quantity += delta;
-                if (item.quantity <= 0) removeItem(id);
-            }
-            updateCartUI();
+        function updateCart() {
+            const list = document.getElementById('cart-items');
+            list.innerHTML = cart.map(i => `
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px">
+                    <span>${i.name} (x${i.qty})</span>
+                    <span>${(i.price * i.qty).toLocaleString()} Ft</span>
+                </div>
+            `).join('');
+            const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            document.getElementById('cart-total').innerText = total.toLocaleString() + " Ft";
+            document.getElementById('cart-count').innerText = cart.reduce((sum, i) => sum + i.qty, 0);
         }
 
-        function removeItem(id) {
-            cart = cart.filter(item => item.id !== id);
-            updateCartUI();
+        function showCheckout() {
+            if (cart.length === 0) return alert("A kosarad üres!");
+            document.getElementById('checkout-form').style.display = 'block';
+            document.getElementById('order-btn').style.display = 'none';
         }
 
-        function clearCart() {
-            cart = [];
-            updateCartUI();
+        function finishOrder() {
+            const name = document.getElementById('c-name').value;
+            if (!name) return alert("Add meg a neved!");
+            alert("Köszönjük, " + name + "! A rendelésed rögzítettük.");
+            cart = []; updateCart(); toggleCart();
+            document.getElementById('checkout-form').style.display = 'none';
+            document.getElementById('order-btn').style.display = 'block';
         }
 
-        function updateCartUI() {
-            const itemsContainer = document.getElementById('cart-items');
-            const countLabel = document.getElementById('cart-count');
-            const totalLabel = document.getElementById('cart-total');
-            
-            itemsContainer.innerHTML = cart.length === 0 ? '<p style="text-align:center; color:#999; margin-top:50px;">A kosarad jelenleg üres.</p>' : '';
-            
-            let total = 0;
-            let count = 0;
-
-            cart.forEach(item => {
-                total += item.price * item.quantity;
-                count += item.quantity;
-                
-                itemsContainer.innerHTML += `
-                    <div class="cart-item">
-                        <div style="flex-grow:1">
-                            <div style="font-weight:bold">${item.name}</div>
-                            <div style="color:var(--success); font-size:0.9rem">${(item.price * item.quantity).toLocaleString()} Ft</div>
-                        </div>
-                        <div class="qty-controls">
-                            <button onclick="changeQuantity('${item.id}', -1)">-</button>
-                            <span>${item.quantity}</span>
-                            <button onclick="changeQuantity('${item.id}', 1)">+</button>
-                            <button class="remove-btn" onclick="removeItem('${item.id}')">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            countLabel.innerText = count;
-            totalLabel.innerText = total.toLocaleString() + ' Ft';
-        }
-
-        fetchProducts();
+        loadProducts();
     </script>
 </body>
 </html>
