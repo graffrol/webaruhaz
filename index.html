@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szuper Webshop - Dinamikus Képekkel</title>
+    <title>Szuper Webshop - Fix Képekkel</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* Modern Design CSS */
+        /* Modern Design CSS - Javítva a szétesés ellen */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
             margin: 0;
             padding: 0;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Biztosítja, hogy a footer alul maradjon */
         }
 
         header {
@@ -34,6 +37,7 @@
             max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
+            flex-grow: 1; /* Kitölti a rendelkezésre álló helyet */
         }
 
         h1 { text-align: center; margin-bottom: 40px; color: #2c3e50; }
@@ -62,19 +66,18 @@
             box-shadow: 0 12px 30px rgba(0,0,0,0.15);
         }
 
-        /* ÚJ: Dinamikus Kép Stílusa */
+        /* Kép Stílusa */
         .product-image-container {
             width: 100%;
             height: 200px;
             overflow: hidden;
             background-color: #f0f0f0;
-            position: relative;
         }
 
         .product-image {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Biztosítja, hogy a kép kitöltse a helyet torzulás nélkül */
+            object-fit: cover; /* Torzulásmentes kitöltés */
             transition: transform 0.5s ease;
         }
 
@@ -148,7 +151,7 @@
     <div class="container">
         <h1>Fedezd fel termékeinket!</h1>
         <div id="products-container">
-            <div class="loading">Termékek betöltése és képek keresése...</div>
+            <div class="loading">Termékek betöltése és képek beállítása...</div>
         </div>
     </div>
 
@@ -180,7 +183,7 @@
             }
         }
 
-        // --- 3. MEGJELENÍTÉS (MÓDOSÍTVA A KÉPEKHEZ) ---
+        // --- 3. MEGJELENÍTÉS (FIX KÉPEKKEL ÉS JAVÍTOTT HTML-lel) ---
         function displayProducts(products) {
             const container = document.getElementById('products-container');
             
@@ -189,25 +192,24 @@
                 return;
             }
 
-            container.innerHTML = products.map(product => {
-                // ÚJ: Dinamikus kép URL generálása a Google Képek keresőjével
-                // Ez egy trükk: a Google Képek keresési URL-jét használjuk, ami gyakran visszaad egy releváns képet.
-                const searchQuery = encodeURIComponent(product.name + " termék");
-                const imageUrl = `https://www.google.com/search?tbm=isch&q=${searchQuery}`;
+            // Fix képek URL-jei (Unsplash-ről, ingyenesen használható képek)
+            const fixedImages = [
+                'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?q=80&w=600&auto=format&fit=crop', // 1. Egér
+                'https://images.unsplash.com/photo-1587829741301-dc798b83bac1?q=80&w=600&auto=format&fit=crop', // 2. Billentyűzet
+                'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?q=80&w=600&auto=format&fit=crop'  // 3. Monitor
+            ];
 
-                // Mivel a Google keresési találatokat nem tudjuk közvetlenül <img>-be tenni (biztonsági okokból),
-                // egy másik helyőrző szolgáltatást használunk, ami a név alapján generál egyedi képet,
-                // de hozzáadunk egy linket, ami a Google Képekre visz.
-                const fallbackImageUrl = `https://api.dicebear.com/8.x/icons/svg?seed=${encodeURIComponent(product.name)}&backgroundColor=00897b,00acc1,039be5,1976d2,3949ab,43a047,7cb342,c0ca33,fdd835,ffb300,fb8c00,f4511e,8d6e63,757575,546e7a`;
+            container.innerHTML = products.map((product, index) => {
+                // Kiválasztjuk a fix képet az index alapján (ha több termék van, újrakezdi a listát)
+                const imageUrl = fixedImages[index % fixedImages.length];
 
+                // JAVÍTVA: Eltávolítottam a hibás </table> és <a> tageket
                 return `
                     <div class="product-card">
                         <div class="product-image-container">
-                            <a href="${imageUrl}" target="_blank" title="Keresés a Google Képeken">
-                                <img class="product-image" 
-                                     src="${product.image_url || fallbackImageUrl}" 
-                                     alt="${product.name}">
-                            </table>
+                            <img class="product-image" 
+                                 src="${product.image_url || imageUrl}" 
+                                 alt="${product.name}">
                         </div>
                         <div class="product-info">
                             <h3 class="product-name">${product.name}</h3>
