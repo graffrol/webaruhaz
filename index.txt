@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Saját Webáruházam</title>
+    <style>
+        body { font-family: sans-serif; display: flex; gap: 20px; }
+        .product-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Üdv a Webshopomban!</h1>
+    <div id="product-list">Betöltés...</div>
+</body>
+</html>
