@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szuper Webshop - Netlify & Supabase</title>
+    <title>Szuper Webshop - Dinamikus Képekkel</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
+        /* Modern Design CSS */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
@@ -35,14 +36,16 @@
             padding: 0 20px;
         }
 
-        h1 { text-align: center; margin-bottom: 40px; }
+        h1 { text-align: center; margin-bottom: 40px; color: #2c3e50; }
 
+        /* Termék rács */
         #products-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 30px;
         }
 
+        /* Termékkártya */
         .product-card {
             background: white;
             border-radius: 15px;
@@ -59,11 +62,24 @@
             box-shadow: 0 12px 30px rgba(0,0,0,0.15);
         }
 
-        .product-image {
+        /* ÚJ: Dinamikus Kép Stílusa */
+        .product-image-container {
             width: 100%;
             height: 200px;
-            object-fit: cover;
+            overflow: hidden;
             background-color: #f0f0f0;
+            position: relative;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Biztosítja, hogy a kép kitöltse a helyet torzulás nélkül */
+            transition: transform 0.5s ease;
+        }
+
+        .product-card:hover .product-image {
+            transform: scale(1.1); /* Enyhe nagyítás hoverre */
         }
 
         .product-info {
@@ -77,6 +93,7 @@
             font-size: 1.25rem;
             margin: 0 0 10px 0;
             color: #2c3e50;
+            font-weight: 600;
         }
 
         .product-price {
@@ -131,24 +148,26 @@
     <div class="container">
         <h1>Fedezd fel termékeinket!</h1>
         <div id="products-container">
-            <div class="loading">Termékek betöltése...</div>
+            <div class="loading">Termékek betöltése és képek keresése...</div>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION (Beillesztve a te adataid) ---
-        const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA';
+        // --- 1. CONFIGURATION (IDE MÁSOLD A SAJÁT ADATAIDAT!) ---
+        const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA'; 
 
+        // Supabase kliens inicializálása
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Kosár belső állapota
         let cart = [];
 
         // --- 2. ADATOK LEKÉRÉSE ---
         async function fetchProducts() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('products')
+                    .from('products') // A táblád neve
                     .select('*');
 
                 if (error) throw error;
@@ -161,35 +180,54 @@
             }
         }
 
-        // --- 3. MEGJELENÍTÉS ---
+        // --- 3. MEGJELENÍTÉS (MÓDOSÍTVA A KÉPEKHEZ) ---
         function displayProducts(products) {
             const container = document.getElementById('products-container');
             
             if (!products || products.length === 0) {
-                container.innerHTML = '<div class="loading">Nincsenek elérhető termékek. Ellenőrizd a Supabase táblát!</div>';
+                container.innerHTML = '<div class="loading">Nincsenek elérhető termékek. Adj hozzá a Supabase-en!</div>';
                 return;
             }
 
-            container.innerHTML = products.map(product => `
-                <div class="product-card">
-                    <img class="product-image" 
-                         src="${product.image_url || 'https://via.placeholder.com/300x200?text=' + encodeURIComponent(product.name)}" 
-                         alt="${product.name}">
-                    <div class="product-info">
-                        <h3 class="product-name">${product.name}</h3>
-                        <p class="product-price">${Number(product.price).toLocaleString()} Ft</p>
-                        <button class="buy-button" onclick="addToCart('${product.name}')">Kosárba teszem</button>
+            container.innerHTML = products.map(product => {
+                // ÚJ: Dinamikus kép URL generálása a Google Képek keresőjével
+                // Ez egy trükk: a Google Képek keresési URL-jét használjuk, ami gyakran visszaad egy releváns képet.
+                const searchQuery = encodeURIComponent(product.name + " termék");
+                const imageUrl = `https://www.google.com/search?tbm=isch&q=${searchQuery}`;
+
+                // Mivel a Google keresési találatokat nem tudjuk közvetlenül <img>-be tenni (biztonsági okokból),
+                // egy másik helyőrző szolgáltatást használunk, ami a név alapján generál egyedi képet,
+                // de hozzáadunk egy linket, ami a Google Képekre visz.
+                const fallbackImageUrl = `https://api.dicebear.com/8.x/icons/svg?seed=${encodeURIComponent(product.name)}&backgroundColor=00897b,00acc1,039be5,1976d2,3949ab,43a047,7cb342,c0ca33,fdd835,ffb300,fb8c00,f4511e,8d6e63,757575,546e7a`;
+
+                return `
+                    <div class="product-card">
+                        <div class="product-image-container">
+                            <a href="${imageUrl}" target="_blank" title="Keresés a Google Képeken">
+                                <img class="product-image" 
+                                     src="${product.image_url || fallbackImageUrl}" 
+                                     alt="${product.name}">
+                            </table>
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-price">${Number(product.price).toLocaleString()} Ft</p>
+                            <button class="buy-button" onclick="addToCart('${product.name}')">Kosárba teszem</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
+        // --- 4. KOSÁR KEZELÉS ---
         function addToCart(productName) {
             cart.push(productName);
             document.getElementById('cart-count').innerText = cart.length;
-            alert(`${productName} bekerült a kosárba!`);
+            // Opcionális: visszajelzés a felhasználónak
+            // alert(`${productName} bekerült a kosárba!`); 
         }
 
+        // Indítás
         fetchProducts();
     </script>
 </body>
