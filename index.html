@@ -3,161 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szuper Webshop - Fix Sorrend</title>
-    
+    <title>Profi Webshop - Kosár Kezeléssel</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
-        }
-
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Header */
         header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background-color: #2c3e50; color: white; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 100;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
+        .cart-icon-btn {
+            background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; position: relative;
         }
 
-        /* EZ FELEL AZ EGYMÁS MELLETTI ELRENDEZÉSÉRT */
-        #products-container {
-            display: grid;
-            /* Minimum 300px széles oszlopok, amik kitöltik a helyet egymás mellett */
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 20px;
-        }
+        #cart-count { background: #e74c3c; padding: 2px 7px; border-radius: 50%; font-size: 0.8rem; position: absolute; top: -10px; right: -15px; }
 
-        /* Mobilon (768px alatt) egymás alá rakja őket, hogy elférjenek */
-        @media (max-width: 768px) {
-            #products-container {
-                grid-template-columns: 1fr;
-            }
-        }
+        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
 
-        .product-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #eee;
-        }
+        /* Termék Rács */
+        #products-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
 
-        .product-image-container {
-            width: 100%;
-            height: 200px;
-            background-color: #eee;
-        }
+        .product-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; border: 1px solid #eee; transition: 0.3s; }
+        .product-card:hover { transform: translateY(-5px); }
+        .product-image { width: 100%; height: 200px; object-fit: cover; }
+        .product-info { padding: 15px; text-align: center; }
+        .product-price { color: #27ae60; font-weight: bold; font-size: 1.2rem; }
+        
+        .buy-button { background-color: #3498db; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
 
-        .product-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        /* OLDALSÓ KOSÁR (SIDEBAR) */
+        #cart-sidebar {
+            position: fixed; top: 0; right: -400px; width: 350px; height: 100%;
+            background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            transition: 0.4s; z-index: 1000; display: flex; flex-direction: column;
         }
+        #cart-sidebar.open { right: 0; }
 
-        .product-info {
-            padding: 15px;
-            text-align: center;
-        }
+        .cart-header { padding: 20px; background: #2c3e50; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .close-cart { cursor: pointer; font-size: 1.5rem; }
 
-        .product-price {
-            color: #27ae60;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
+        #cart-items { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        
+        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .qty-controls button { padding: 2px 8px; cursor: pointer; }
+        .remove-btn { color: #e74c3c; cursor: pointer; font-size: 0.8rem; border: none; background: none; margin-left: 10px; }
 
-        .buy-button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
+        .cart-footer { padding: 20px; border-top: 2px solid #eee; }
+        .clear-btn { background: #95a5a6; color: white; border: none; width: 100%; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
 
-        #cart-count {
-            background: #e74c3c;
-            padding: 2px 7px;
-            border-radius: 50%;
-            font-size: 0.8rem;
-        }
+        @media (max-width: 768px) { #products-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <header>
         <div style="font-size: 1.5rem; font-weight: bold;">SzuperWebshop</div>
-        <div>🛒 Kosár: <span id="cart-count">0</span></div>
+        <button class="cart-icon-btn" onclick="toggleCart()">🛒 Kosár <span id="cart-count">0</span></button>
     </header>
 
+    <div id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Kosarad tartalma</h3>
+            <span class="close-cart" onclick="toggleCart()">×</span>
+        </div>
+        <div id="cart-items">
+            </div>
+        <div class="cart-footer">
+            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Összesen:</span>
+                <span id="cart-total">0 Ft</span>
+            </div>
+            <button class="clear-btn" onclick="clearCart()">Kosár kiürítése</button>
+        </div>
+    </div>
+
     <div class="container">
-        <h1 style="text-align:center">Kiemelt ajánlataink</h1>
         <div id="products-container">
-            <p style="text-align:center; grid-column: 1/-1;">Betöltés...</p>
+            <p style="text-align:center; grid-column: 1/-1;">Termékek betöltése...</p>
         </div>
     </div>
 
     <script>
         const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co'; 
         const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA'; 
-
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let cart = []; // A kosár most már objektumokat fog tárolni
 
         async function fetchProducts() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('products')
-                    .select('*')
-                    .order('id', { ascending: true }); // Sorrendben kérjük le
-
+                const { data, error } = await supabaseClient.from('products').select('*').order('id', { ascending: true });
                 if (error) throw error;
                 displayProducts(data);
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) { console.error(err); }
         }
 
         function displayProducts(products) {
             const container = document.getElementById('products-container');
-            
-            // Fix, működő képek
             const fixedImages = [
-                "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600", // Egér
-                "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=600", // Billentyűzet
-                "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600"  // Monitor
+                "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?auto=compress&cs=tinysrgb&w=600",
+                "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600"
             ];
 
             container.innerHTML = products.map((product, index) => `
                 <div class="product-card">
-                    <div class="product-image-container">
-                        <img class="product-image" src="${fixedImages[index % 3]}" alt="${product.name}">
-                    </div>
+                    <img class="product-image" src="${fixedImages[index % 3]}" alt="${product.name}">
                     <div class="product-info">
                         <h3>${product.name}</h3>
                         <p class="product-price">${Number(product.price).toLocaleString()} Ft</p>
-                        <button class="buy-button" onclick="addToCart()">Kosárba</button>
+                        <button class="buy-button" onclick="addToCart('${product.id}', '${product.name}', ${product.price})">Kosárba</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function addToCart() {
-            const count = document.getElementById('cart-count');
-            count.innerText = parseInt(count.innerText) + 1;
+        // KOSÁR FUNKCIÓK
+        function toggleCart() {
+            document.getElementById('cart-sidebar').classList.toggle('open');
+        }
+
+        function addToCart(id, name, price) {
+            const existingItem = cart.find(item => item.id === id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+            updateCartUI();
+            // Automatikusan kinyitjuk a kosarat, hogy lássa a változást
+            document.getElementById('cart-sidebar').classList.add('open');
+        }
+
+        function changeQuantity(id, delta) {
+            const item = cart.find(item => item.id === id);
+            if (item) {
+                item.quantity += delta;
+                if (item.quantity <= 0) {
+                    removeItem(id);
+                }
+            }
+            updateCartUI();
+        }
+
+        function removeItem(id) {
+            cart = cart.filter(item => item.id !== id);
+            updateCartUI();
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cartItemsContainer = document.getElementById('cart-items');
+            const cartCount = document.getElementById('cart-count');
+            const cartTotal = document.getElementById('cart-total');
+            
+            cartItemsContainer.innerHTML = cart.length === 0 ? '<p>A kosarad üres.</p>' : '';
+            
+            let total = 0;
+            let count = 0;
+
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                count += item.quantity;
+                
+                cartItemsContainer.innerHTML += `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${item.name}</strong><br>
+                            <small>${item.price.toLocaleString()} Ft / db</small>
+                        </div>
+                        <div class="qty-controls">
+                            <button onclick="changeQuantity('${item.id}', -1)">-</button>
+                            <span>${item.quantity}</span>
+                            <button onclick="changeQuantity('${item.id}', 1)">+</button>
+                            <button class="remove-btn" onclick="removeItem('${item.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cartCount.innerText = count;
+            cartTotal.innerText = total.toLocaleString() + ' Ft';
         }
 
         fetchProducts();
