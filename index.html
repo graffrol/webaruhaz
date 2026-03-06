@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profi Webshop - Teljes Verzió</title>
+    <title>Webshop</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --dark: #2c3e50; --primary: #3498db; --success: #27ae60; --danger: #e74c3c; --light: #f8f9fa; }
@@ -87,22 +87,45 @@
 
     <div id="overlay" onclick="closeAll()"></div>
 
-    <div id="auth-modal" class="modal">
-        <div class="modal-content">
-            <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeAuth()">×</span>
-            <h2 id="auth-title" style="text-align:center">Bejelentkezés</h2>
-            <input type="email" id="auth-email" placeholder="E-mail cím">
-            <input type="password" id="auth-password" placeholder="Jelszó">
-            <button class="auth-submit" onclick="handleAuth()">Mehet</button>
-            <p style="text-align:center; cursor:pointer; text-decoration:underline; font-size:0.9rem; margin-top:15px" onclick="toggleAuthMode()" id="auth-switch">Nincs fiókom, regisztrálok</p>
-        </div>
+   <div id="login-modal" class="modal">
+    <div class="modal-content">
+        <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeModal('login-modal')">×</span>
+        <h2>Bejelentkezés</h2>
+        <input type="email" id="login-email" placeholder="E-mail cím">
+        <input type="password" id="login-password" placeholder="Jelszó">
+        <button class="auth-submit" onclick="handleLogin()">Belépés</button>
+        <p style="text-align:center; cursor:pointer; text-decoration:underline; font-size:0.9rem; margin-top:15px" onclick="openRegister()">Nincs fiókom, regisztrálok</p>
     </div>
+</div>
+
+<div id="register-modal" class="modal">
+    <div class="modal-content" style="width: 450px; max-height: 90vh; overflow-y: auto;">
+        <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeModal('register-modal')">×</span>
+        <h2>Regisztráció</h2>
+        <select id="user-type" onchange="toggleCompanyFields()">
+            <option value="individual">Magánszemély</option>
+            <option value="company">Cég</option>
+        </select>
+        <input type="text" id="reg-company" placeholder="Cégnév" style="display:none">
+        <input type="text" id="reg-fname" placeholder="Vezetéknév">
+        <input type="text" id="reg-lname" placeholder="Keresztnév">
+        <input type="tel" id="reg-phone" placeholder="Telefonszám">
+        <input type="text" id="reg-zip" placeholder="Irányítószám">
+        <input type="text" id="reg-city" placeholder="Település">
+        <input type="text" id="reg-street" placeholder="Utca, Házszám">
+        <input type="email" id="reg-email" placeholder="E-mail cím">
+        <input type="password" id="reg-password" placeholder="Jelszó" oninput="checkStrength(this.value)">
+        <div id="strength-meter" style="height:5px; background:#eee; margin-bottom:10px;"><div id="strength-bar" style="width:0; height:100%; transition:0.3s"></div></div>
+        <input type="password" id="reg-password-confirm" placeholder="Jelszó újra">
+        <button class="auth-submit" onclick="handleRegister()">Regisztráció</button>
+    </div>
+</div>
 
     <header>
-        <div style="font-size: 1.5rem; font-weight: bold;">SzuperWebshop</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">Webshop</div>
         <div class="nav-btns">
             <span id="user-display" style="font-size: 0.8rem;"></span>
-            <button id="nav-auth-btn" class="btn-action" onclick="openAuth()">Bejelentkezés</button>
+            <button id="nav-auth-btn" class="btn-action" onclick="openLogin()">Bejelentkezés</button>
             <button id="cart-btn" class="btn-action cart-icon-btn" onclick="toggleCart()">
                 🛒 <span id="cart-count">0</span>
             </button>
@@ -142,32 +165,90 @@
         let isLoginMode = true;
 
         // --- AUTH ---
-        function openAuth() { document.getElementById('auth-modal').style.display = 'flex'; }
-        function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
-        function toggleAuthMode() {
-            isLoginMode = !isLoginMode;
-            document.getElementById('auth-title').innerText = isLoginMode ? "Bejelentkezés" : "Regisztráció";
-            document.getElementById('auth-switch').innerText = isLoginMode ? "Nincs fiókom, regisztrálok" : "Már van fiókom, belépek";
-        }
+        // Modal Vezérlés
+function openLogin() { document.getElementById('login-modal').style.display = 'flex'; }
+function openRegister() { closeModal('login-modal'); document.getElementById('register-modal').style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function closeAll() { closeModal('login-modal'); closeModal('register-modal'); }
 
-        async function handleAuth() {
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            if (isLoginMode) {
-                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) alert(error.message); else closeAuth();
-            } else {
-                const { error } = await supabaseClient.auth.signUp({ email, password });
-                if (error) alert(error.message); else alert("Regisztráció kész! Ellenőrizd az e-mailed!");
-            }
-        }
+function checkStrength(val) {
+    const bar = document.getElementById('strength-bar');
+    let s = val.length > 6 ? 33 : 0;
+    if (/[A-Z]/.test(val)) s += 33;
+    if (/[0-9]/.test(val)) s += 34;
+    bar.style.width = s + "%";
+    bar.style.backgroundColor = s < 50 ? 'red' : (s < 80 ? 'orange' : 'green');
+}
 
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            const user = session?.user;
-            document.getElementById('user-display').innerText = user ? user.email : "";
-            document.getElementById('nav-auth-btn').innerText = user ? "Kijelentkezés" : "Bejelentkezés";
-            document.getElementById('nav-auth-btn').onclick = user ? () => supabaseClient.auth.signOut() : openAuth;
-        });
+function toggleCompanyFields() {
+    document.getElementById('reg-company').style.display = document.getElementById('user-type').value === 'company' ? 'block' : 'none';
+}
+
+async function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+        alert("Hiba: " + error.message);
+    } else {
+        closeModal('login-modal');
+        location.reload(); // Ez frissíti az állapotot, hogy eltűnjön a bejelentkezés gomb
+    }
+}
+
+async function handleRegister() {
+    const email = document.getElementById('reg-email').value;
+    const password = document.getElementById('reg-password').value;
+    if (password !== document.getElementById('reg-password-confirm').value) return alert("Nem egyeznek a jelszavak!");
+
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) return alert(error.message);
+
+    const { error: pError } = await supabaseClient.from('profiles').insert([{
+        id: data.user.id,
+        full_name: document.getElementById('reg-fname').value + " " + document.getElementById('reg-lname').value,
+        phone: document.getElementById('reg-phone').value,
+        address: `${document.getElementById('reg-zip').value} ${document.getElementById('reg-city').value}, ${document.getElementById('reg-street').value}`,
+        is_company: document.getElementById('user-type').value === 'company',
+        company_name: document.getElementById('reg-company').value
+    }]);
+
+    if (pError) alert("Profil hiba: " + pError.message); else alert("Sikeres regisztráció!");
+}
+
+
+        // 1. Külön függvény a név lekérésére
+async function updateUserName(userId) {
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .single();
+    
+    if (profile) {
+        const fullName = profile.full_name || "Felhasználó";
+        const firstName = fullName.includes(' ') ? fullName.split(' ')[1] : fullName;
+        document.getElementById('user-display').innerText = `Üdvözöllek, ${firstName}!`;
+    }
+}
+
+// 2. Az eseményfigyelő most már csak hívja a függvényt, nem vár rá
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    const user = session?.user;
+    const authBtn = document.getElementById('nav-auth-btn');
+    
+    if (user) {
+        updateUserName(user.id); // Itt hívjuk meg a névfrissítést
+        authBtn.innerText = "Kijelentkezés";
+        authBtn.onclick = handleLogout;
+    } else {
+        document.getElementById('user-display').innerText = "";
+        authBtn.innerText = "Bejelentkezés";
+        authBtn.onclick = openLogin;
+    }
+});
 
         // --- SHOP LOGIC ---
         async function loadProducts() {
@@ -249,6 +330,11 @@
             document.getElementById('checkout-form').style.display = 'none';
             document.getElementById('order-start-btn').style.display = 'block';
         }
+	// A kijelentkezés módosítása
+	async function handleLogout() {
+    		await supabaseClient.auth.signOut();
+    		location.reload(); // Ez kötelező, hogy az oldal újraolvassa a session-t
+	}
 
         loadProducts();
     </script>
