@@ -393,6 +393,84 @@ async function showPurchases() {
         `;
     }).join("");
 }
+async function deleteAccount() {
+    if (!confirm("BIZTOSAN törlöd a fiókodat? Minden adatod véglegesen megsemmisül!")) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return;
+
+    // Megpróbáljuk beszúrni, de ha már ott van, az sem baj
+    const { error } = await supabaseClient
+        .from('delete_requests')
+        .upsert([{ id: user.id }]); // INSERT helyett UPSERT (frissít, ha már létezik)
+
+    if (error) {
+        alert("Hiba a törlésnél: " + error.message);
+    } else {
+        alert("A fiók törlése sikeres.");
+        await supabaseClient.auth.signOut();
+        localStorage.clear();
+        location.reload();
+    }
+}
+// --- PROFIL ÉS FIÓK KEZELÉS ---
+
+// 1. Profil módosítás modal megnyitása és adatok betöltése
+async function showProfileSettings() {
+    document.getElementById("profile-menu").style.display = "none";
+    
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return alert("Kérlek jelentkezz be!");
+
+    const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+    if (data) {
+        document.getElementById("edit-name").value = data.full_name || "";
+        document.getElementById("edit-phone").value = data.phone || "";
+        document.getElementById("edit-address").value = data.address || "";
+        document.getElementById("profile-settings-modal").style.display = "flex";
+    } else {
+        alert("Hiba az adatok lekérésekor: " + (error?.message || "Ismeretlen hiba"));
+    }
+}
+
+// 2. Profil módosítás mentése
+async function saveProfileChanges() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    const { error } = await supabaseClient
+        .from('profiles')
+        .update({
+            full_name: document.getElementById("edit-name").value,
+            phone: document.getElementById("edit-phone").value,
+            address: document.getElementById("edit-address").value
+        })
+        .eq('id', user.id);
+
+    if (error) alert("Hiba a mentéskor: " + error.message);
+    else {
+        alert("Sikeresen módosítva!");
+        closeModal('profile-settings-modal');
+        location.reload();
+    }
+}
+
+// 3. Jelszó módosítás
+async function changeUserPassword() {
+    const newPassword = document.getElementById("edit-new-password").value;
+    if (newPassword.length < 6) return alert("A jelszónak legalább 6 karakternek kell lennie!");
+    
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+    if (error) alert("Hiba a jelszó frissítésekor: " + error.message);
+    else alert("Jelszó sikeresen frissítve!");
+}
+
+
+
 
       loadProducts();
     

@@ -130,6 +130,60 @@
       </div>
     </div>
 
+    <div id="profile-settings-modal" class="modal">
+      <div class="modal-content" style="width: 400px">
+        <span
+          style="
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 24px;
+          "
+          onclick="closeModal('profile-settings-modal')"
+          >×</span
+        >
+        <h2>Profilom módosítása</h2>
+        <form id="profile-edit-form">
+          <input type="text" id="edit-name" placeholder="Teljes név" />
+          <input type="tel" id="edit-phone" placeholder="Telefonszám" />
+          <input type="text" id="edit-address" placeholder="Szállítási cím" />
+          <button
+            type="button"
+            class="auth-submit"
+            onclick="saveProfileChanges()"
+          >
+            Mentés
+          </button>
+        </form>
+        <hr style="margin: 20px 0" />
+        <h3>Jelszó módosítása</h3>
+        <input type="password" id="edit-new-password" placeholder="Új jelszó" />
+        <button
+          type="button"
+          class="auth-submit"
+          onclick="changeUserPassword()"
+        >
+          Jelszó frissítése
+        </button>
+        <hr style="margin: 20px 0" />
+        <button
+          type="button"
+          onclick="deleteAccount()"
+          style="
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+          "
+        >
+          Fiók és összes adat törlése (Végleges!)
+        </button>
+      </div>
+    </div>
+
     <header>
       <div style="font-size: 1.5rem; font-weight: bold">Webshop</div>
       <div class="nav-btns">

@@ -224,10 +224,12 @@ h1 {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  width: 4000px;
+  width: 90%;
+  max-width: 450px;
   position: relative;
   max-height: 80vh;
   overflow-y: auto;
+  margin: 10% auto;
 }
 .modal-content input {
   width: 100%;
