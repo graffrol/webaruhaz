@@ -184,6 +184,28 @@
       </div>
     </div>
 
+    <div id="guest-checkout-modal" class="modal">
+      <div class="modal-content" style="width: 400px">
+        <span
+          style="position: absolute; right: 15px; cursor: pointer"
+          onclick="closeModal('guest-checkout-modal')"
+          >×</span
+        >
+        <h2>Vendég rendelés</h2>
+        <input type="text" id="guest-name" placeholder="Teljes név" required />
+        <input type="tel" id="guest-phone" placeholder="Telefonszám" required />
+        <input
+          type="text"
+          id="guest-addr"
+          placeholder="Szállítási cím"
+          required
+        />
+        <button class="auth-submit" onclick="finishGuestOrder()">
+          Rendelés leadása
+        </button>
+      </div>
+    </div>
+
     <header>
       <div style="font-size: 1.5rem; font-weight: bold">Webshop</div>
       <div class="nav-btns">

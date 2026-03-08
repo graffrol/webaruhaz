@@ -302,18 +302,27 @@ window.onclick = function(event) {
         updateUI();
       }
 
-      function showCheckout() {
-        if (cart.length === 0) return;
+      // 1. Az "async" hozzáadva a showCheckout-hoz, hogy tudjuk ellenőrizni a belépést
+async function showCheckout() {
+    if (cart.length === 0) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+
+    if (user) {
+        // Ha be van jelentkezve, az eddigi folyamat indul
         document.getElementById("checkout-form").style.display = "block";
         document.getElementById("order-start-btn").style.display = "none";
-      }
+    } else {
+        // Ha nincs, nyissuk meg a vendég rendelési modalt
+        document.getElementById("guest-checkout-modal").style.display = "flex";
+    }
+}
 
-      async function finishOrder() {
-    // 1. User azonosítása
+// 2. A finishOrder marad a regisztráltaknak
+async function finishOrder() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return alert("Kérlek jelentkezz be a rendeléshez!");
 
-    // 2. Profiladatok lekérése az adatbázisból
     const { data: profile, error: pError } = await supabaseClient
         .from('profiles')
         .select('full_name, address')
@@ -322,15 +331,14 @@ window.onclick = function(event) {
 
     if (pError || !profile) return alert("Hiba a felhasználói adatok lekérésekor!");
 
-    // 3. Mentés az orders táblába a profilból jövő adatokkal
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
 
     const { error } = await supabaseClient.from('orders').insert([{
         user_id: user.id,
         total_price: total,
         items: JSON.stringify(cart),
-        shipping_name: profile.full_name, // Innen jön a név
-        shipping_addr: profile.address,   // Innen jön a cím
+        shipping_name: profile.full_name,
+        shipping_addr: profile.address,
         status: 'feldolgozás alatt'
     }]);
 
@@ -340,6 +348,38 @@ window.onclick = function(event) {
         alert("Köszönjük a rendelésed, " + profile.full_name + "!");
         clearCart();
         closeAll();
+        document.getElementById("checkout-form").style.display = "none";
+        document.getElementById("order-start-btn").style.display = "block";
+    }
+}
+async function finishGuestOrder() {
+    const name = document.getElementById("guest-name").value;
+    const phone = document.getElementById("guest-phone").value;
+    const addr = document.getElementById("guest-addr").value;
+    
+    if (!name || !phone || !addr) return alert("Minden mező kitöltése kötelező!");
+
+    // Kosár összesítése
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+    // Mentés a guest_orders táblába
+    const { error } = await supabaseClient.from('guest_orders').insert([{
+        name: name,
+        phone: phone,
+        address: addr,
+        items: JSON.stringify(cart), // JSON stringként mentjük
+        total_price: total,
+        status: 'feldolgozás alatt'
+    }]);
+
+    if (error) {
+        alert("Hiba a rendelés során: " + error.message);
+    } else {
+        alert("Köszönjük a rendelésed, " + name + "!");
+        clearCart();
+        closeModal('guest-checkout-modal'); // Bezárja a vendég modalt
+        
+        // Visszaállítjuk a gombokat az eredeti állapotba
         document.getElementById("checkout-form").style.display = "none";
         document.getElementById("order-start-btn").style.display = "block";
     }
