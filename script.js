@@ -1,12 +1,12 @@
-      const SUPABASE_URL = "https://cusfbbukgmklizkirlfk.supabase.co";
-      const SUPABASE_KEY = "sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA";
-      const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://cusfbbukgmklizkirlfk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      let cart = [];
-      let isLoginMode = true;
+let cart = [];
+let isLoginMode = true;
 
-      // --- AUTH ---
-      // Modal Vezérlés
+// --- AUTH ---
+// Modal Vezérlés
       function openLogin() {
         document.getElementById("login-modal").style.display = "flex";
       }
@@ -57,69 +57,84 @@
       }
 
       async function handleRegister() {
-        const email = document.getElementById("reg-email").value;
-        const password = document.getElementById("reg-password").value;
-        if (password !== document.getElementById("reg-password-confirm").value)
-          return alert("Nem egyeznek a jelszavak!");
+    const email = document.getElementById('reg-email').value;
+    const password = document.getElementById('reg-password').value;
+    
+    // 1. Regisztráció az auth.users táblába
+    const { data, error } = await supabaseClient.auth.signUp({ 
+        email: email, 
+        password: password 
+    });
+    
+    if (error) return alert("Hiba a regisztrációkor: " + error.message);
 
-        const { data, error } = await supabaseClient.auth.signUp({
-          email,
-          password,
-        });
-        if (error) return alert(error.message);
+    // 2. Adatok mentése a profiles táblába (itt adjuk át az e-mailt!)
+    const { error: pError } = await supabaseClient.from('profiles').insert([{
+        id: data.user.id, // A regisztrált user ID-ja
+        email: email,     // <-- ITT ADOD ÁT AZ E-MAILT!
+        full_name: document.getElementById('reg-fname').value + " " + document.getElementById('reg-lname').value,
+        phone: document.getElementById('reg-phone').value,
+        address: `${document.getElementById('reg-zip').value} ${document.getElementById('reg-city').value}, ${document.getElementById('reg-street').value}`,
+        is_company: document.getElementById('user-type').value === 'company',
+        company_name: document.getElementById('reg-company').value
+    }]);
 
-        const { error: pError } = await supabaseClient.from("profiles").insert([
-          {
-            id: data.user.id,
-            full_name:
-              document.getElementById("reg-fname").value +
-              " " +
-              document.getElementById("reg-lname").value,
-            phone: document.getElementById("reg-phone").value,
-            address: `${document.getElementById("reg-zip").value} ${document.getElementById("reg-city").value}, ${document.getElementById("reg-street").value}`,
-            is_company:
-              document.getElementById("user-type").value === "company",
-            company_name: document.getElementById("reg-company").value,
-          },
-        ]);
-
-        if (pError) alert("Profil hiba: " + pError.message);
-        else alert("Sikeres regisztráció!");
-      }
+    if (pError) alert("Profil hiba: " + pError.message); 
+    else alert("Sikeres regisztráció!");
+}
 
       // 1. Külön függvény a név lekérésére
-      async function updateUserName(userId) {
-        const { data: profile } = await supabaseClient
-          .from("profiles")
-          .select("full_name")
-          .eq("id", userId)
-          .single();
+  async function updateUserName(userId) {
+    const display = document.getElementById('user-display');
+    
+    // Lekérdezzük a teljes nevet
+    const { data, error } = await supabaseClient
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle();
 
-        if (profile) {
-          const fullName = profile.full_name || "Felhasználó";
-          const firstName = fullName.includes(" ")
-            ? fullName.split(" ")[1]
-            : fullName;
-          document.getElementById("user-display").innerText =
-            `Üdvözöllek, ${firstName}!`;
+    if (error) {
+        console.error("Hiba a név lekérésekor:", error.message);
+        return;
+    }
+
+    // Ha van találat, kiírjuk a teljes nevet
+    if (data && data.full_name) {
+        // A név vágása szóköz mentén
+        // A trim() eltávolítja az esetleges extra szóközöket az elejéről/végéről
+        const parts = data.full_name.trim().split(' ');
+        
+        // A keresztnév a tömb második eleme (index 1), ha van. 
+        // Ha csak egy név van, akkor az elsőt (index 0) írjuk ki.
+        const firstName = parts[0];
+        
+        display.innerText = `Üdvözöllek ${firstName}!`;
+    } else {
+        // Ha nincs adat a profiles táblában, fallback az email címre
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            display.innerText = `Üdvözöllek ${session.user.email}!`;
         }
-      }
+    }
+}
 
       // 2. Az eseményfigyelő most már csak hívja a függvényt, nem vár rá
       supabaseClient.auth.onAuthStateChange((event, session) => {
-        const user = session?.user;
-        const authBtn = document.getElementById("nav-auth-btn");
+    const user = session?.user;
+    const authBtn = document.getElementById('nav-auth-btn');
+    const display = document.getElementById('user-display');
 
-        if (user) {
-          updateUserName(user.id); // Itt hívjuk meg a névfrissítést
-          authBtn.innerText = "Kijelentkezés";
-          authBtn.onclick = handleLogout;
-        } else {
-          document.getElementById("user-display").innerText = "";
-          authBtn.innerText = "Bejelentkezés";
-          authBtn.onclick = openLogin;
-        }
-      });
+    if (user) {
+        updateUserName(user.id);
+        authBtn.innerText = "Kijelentkezés";
+        authBtn.onclick = handleLogout;
+    } else {
+        display.innerText = "";
+        authBtn.innerText = "Bejelentkezés";
+        authBtn.onclick = openLogin;
+    }
+});
 
       // --- SHOP LOGIC ---
       async function loadProducts() {
