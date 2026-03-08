@@ -1,342 +1,168 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hu">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Webshop</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        :root { --dark: #2c3e50; --primary: #3498db; --success: #27ae60; --danger: #e74c3c; --light: #f8f9fa; }
-        
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--light); margin: 0; padding: 0; overflow-x: hidden; }
-        
-        /* HEADER */
-        header {
-            background-color: var(--dark); color: white; padding: 1rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .nav-btns { display: flex; align-items: center; gap: 15px; }
-
-        .btn-action { background: #556677; border: none; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-action:hover { background: #667788; }
-
-        .cart-icon-btn { background: var(--primary); color: white; position: relative; display: flex; align-items: center; gap: 8px; }
-        #cart-count { background: var(--danger); color: white; padding: 2px 7px; border-radius: 20px; font-size: 0.75rem; }
-
-        /* TERMÉKEK */
-        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
-        h1 { text-align: center; color: var(--dark); margin-bottom: 40px; }
-
-        #products-container { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 25px; 
-        }
-
-        .product-card { 
-            background: white; border-radius: 12px; overflow: hidden; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; 
-            flex-direction: column; border: 1px solid #eee; transition: 0.3s; 
-        }
-        .product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .product-image { width: 100%; height: 200px; object-fit: cover; }
-        .product-info { padding: 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; }
-        .product-price { color: var(--success); font-weight: bold; font-size: 1.3rem; margin-bottom: 15px; }
-        
-        .buy-button { background-color: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: auto; }
-
-        /* KOSÁR OLDALSÁV */
-        #cart-sidebar {
-            position: fixed; top: 0; right: -400px; 
-            width: 380px; max-width: 90%; height: 100%;
-            background: white; box-shadow: -10px 0 30px rgba(0,0,0,0.2);
-            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; 
-            display: flex; flex-direction: column;
-        }
-        #cart-sidebar.open { right: 0; }
-
-        .cart-header { padding: 20px; background: var(--dark); color: white; display: flex; justify-content: space-between; align-items: center; }
-        .close-cart { cursor: pointer; font-size: 2rem; }
-
-        #cart-items { flex-grow: 1; overflow-y: auto; padding: 20px; }
-        
-        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        .qty-controls { display: flex; align-items: center; gap: 8px; }
-        .qty-controls button { width: 25px; height: 25px; border: 1px solid #ddd; background: white; cursor: pointer; border-radius: 4px; }
-        .remove-btn { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 1.1rem; }
-
-        .cart-footer { padding: 20px; border-top: 2px solid #eee; background: #fafafa; }
-        .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; margin-bottom: 15px; }
-        
-        /* AUTH MODAL */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 350px; position: relative; }
-        .modal-content input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .auth-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-
-        /* OVERLAY */
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: 0.3s; z-index: 999; }
-        #overlay.active { visibility: visible; opacity: 1; }
-
-        #checkout-form { display: none; margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px; }
-    </style>
-</head>
-<body>
-
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div id="overlay" onclick="closeAll()"></div>
 
-   <div id="login-modal" class="modal">
-    <div class="modal-content">
-        <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeModal('login-modal')">×</span>
+    <div id="login-modal" class="modal">
+      <div class="modal-content">
+        <span
+          style="
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 24px;
+          "
+          onclick="closeModal('login-modal')"
+          >×</span
+        >
         <h2>Bejelentkezés</h2>
-        <input type="email" id="login-email" placeholder="E-mail cím">
-        <input type="password" id="login-password" placeholder="Jelszó">
+        <input type="email" id="login-email" placeholder="E-mail cím" />
+        <input type="password" id="login-password" placeholder="Jelszó" />
         <button class="auth-submit" onclick="handleLogin()">Belépés</button>
-        <p style="text-align:center; cursor:pointer; text-decoration:underline; font-size:0.9rem; margin-top:15px" onclick="openRegister()">Nincs fiókom, regisztrálok</p>
+        <p
+          style="
+            text-align: center;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 0.9rem;
+            margin-top: 15px;
+          "
+          onclick="openRegister()"
+        >
+          Nincs fiókom, regisztrálok
+        </p>
+      </div>
     </div>
-</div>
 
-<div id="register-modal" class="modal">
-    <div class="modal-content" style="width: 450px; max-height: 90vh; overflow-y: auto;">
-        <span style="position:absolute; right:15px; top:10px; cursor:pointer; font-size:24px" onclick="closeModal('register-modal')">×</span>
+    <div id="register-modal" class="modal">
+      <div
+        class="modal-content"
+        style="width: 450px; max-height: 90vh; overflow-y: auto"
+      >
+        <span
+          style="
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 24px;
+          "
+          onclick="closeModal('register-modal')"
+          >×</span
+        >
         <h2>Regisztráció</h2>
         <select id="user-type" onchange="toggleCompanyFields()">
-            <option value="individual">Magánszemély</option>
-            <option value="company">Cég</option>
+          <option value="individual">Magánszemély</option>
+          <option value="company">Cég</option>
         </select>
-        <input type="text" id="reg-company" placeholder="Cégnév" style="display:none">
-        <input type="text" id="reg-fname" placeholder="Vezetéknév">
-        <input type="text" id="reg-lname" placeholder="Keresztnév">
-        <input type="tel" id="reg-phone" placeholder="Telefonszám">
-        <input type="text" id="reg-zip" placeholder="Irányítószám">
-        <input type="text" id="reg-city" placeholder="Település">
-        <input type="text" id="reg-street" placeholder="Utca, Házszám">
-        <input type="email" id="reg-email" placeholder="E-mail cím">
-        <input type="password" id="reg-password" placeholder="Jelszó" oninput="checkStrength(this.value)">
-        <div id="strength-meter" style="height:5px; background:#eee; margin-bottom:10px;"><div id="strength-bar" style="width:0; height:100%; transition:0.3s"></div></div>
-        <input type="password" id="reg-password-confirm" placeholder="Jelszó újra">
-        <button class="auth-submit" onclick="handleRegister()">Regisztráció</button>
+        <input
+          type="text"
+          id="reg-company"
+          placeholder="Cégnév"
+          style="display: none"
+        />
+        <input type="text" id="reg-fname" placeholder="Vezetéknév" />
+        <input type="text" id="reg-lname" placeholder="Keresztnév" />
+        <input type="tel" id="reg-phone" placeholder="Telefonszám" />
+        <input type="text" id="reg-zip" placeholder="Irányítószám" />
+        <input type="text" id="reg-city" placeholder="Település" />
+        <input type="text" id="reg-street" placeholder="Utca, Házszám" />
+        <input type="email" id="reg-email" placeholder="E-mail cím" />
+        <input
+          type="password"
+          id="reg-password"
+          placeholder="Jelszó"
+          oninput="checkStrength(this.value)"
+        />
+        <div
+          id="strength-meter"
+          style="height: 5px; background: #eee; margin-bottom: 10px"
+        >
+          <div
+            id="strength-bar"
+            style="width: 0; height: 100%; transition: 0.3s"
+          ></div>
+        </div>
+        <input
+          type="password"
+          id="reg-password-confirm"
+          placeholder="Jelszó újra"
+        />
+        <button class="auth-submit" onclick="handleRegister()">
+          Regisztráció
+        </button>
+      </div>
     </div>
-</div>
 
     <header>
-        <div style="font-size: 1.5rem; font-weight: bold;">Webshop</div>
-        <div class="nav-btns">
-            <span id="user-display" style="font-size: 0.8rem;"></span>
-            <button id="nav-auth-btn" class="btn-action" onclick="openLogin()">Bejelentkezés</button>
-            <button id="cart-btn" class="btn-action cart-icon-btn" onclick="toggleCart()">
-                🛒 <span id="cart-count">0</span>
-            </button>
-        </div>
+      <div style="font-size: 1.5rem; font-weight: bold">Webshop</div>
+      <div class="nav-btns">
+        <span id="user-display" style="font-size: 0.8rem"></span>
+        <button id="nav-auth-btn" class="btn-action" onclick="openLogin()">
+          Bejelentkezés
+        </button>
+        <button
+          id="cart-btn"
+          class="btn-action cart-icon-btn"
+          onclick="toggleCart()"
+        >
+          🛒 <span id="cart-count">0</span>
+        </button>
+      </div>
     </header>
 
     <div id="cart-sidebar">
-        <div class="cart-header">
-            <h3 style="margin:0">Kosarad</h3>
-            <span class="close-cart" onclick="toggleCart()">×</span>
+      <div class="cart-header">
+        <h3 style="margin: 0">Kosarad</h3>
+        <span class="close-cart" onclick="toggleCart()">×</span>
+      </div>
+      <div id="cart-items"></div>
+      <div class="cart-footer">
+        <div class="total-row">
+          <span>Összesen:</span><span id="cart-total">0 Ft</span>
         </div>
-        <div id="cart-items"></div>
-        <div class="cart-footer">
-            <div class="total-row"><span>Összesen:</span><span id="cart-total">0 Ft</span></div>
-            <button id="order-start-btn" class="buy-button" style="background:var(--success); width:100%" onclick="showCheckout()">Megrendelés</button>
-            
-            <div id="checkout-form">
-                <input type="text" id="cust-name" placeholder="Teljes név">
-                <input type="text" id="cust-addr" placeholder="Szállítási cím">
-                <button class="buy-button" style="background:var(--dark); width:100%" onclick="finishOrder()">Rendelés véglegesítése</button>
-            </div>
-            <button class="btn-action" style="width:100%; margin-top:10px; background:#95a5a6" onclick="clearCart()">Kosár ürítése</button>
+        <button
+          id="order-start-btn"
+          class="buy-button"
+          style="background: var(--success); width: 100%"
+          onclick="showCheckout()"
+        >
+          Megrendelés
+        </button>
+
+        <div id="checkout-form">
+          <input type="text" id="cust-name" placeholder="Teljes név" />
+          <input type="text" id="cust-addr" placeholder="Szállítási cím" />
+          <button
+            class="buy-button"
+            style="background: var(--dark); width: 100%"
+            onclick="finishOrder()"
+          >
+            Rendelés véglegesítése
+          </button>
         </div>
+        <button
+          class="btn-action"
+          style="width: 100%; margin-top: 10px; background: #95a5a6"
+          onclick="clearCart()"
+        >
+          Kosár ürítése
+        </button>
+      </div>
     </div>
 
     <div class="container">
-        <h1>Termékeink</h1>
-        <div id="products-container"></div>
+      <h1>Termékeink</h1>
+      <div id="products-container"></div>
     </div>
-
-    <script>
-        const SUPABASE_URL = 'https://cusfbbukgmklizkirlfk.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_bbUHpTINCLVh1wpyZuamIA_2I0kBcPA';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let cart = [];
-        let isLoginMode = true;
-
-        // --- AUTH ---
-        // Modal Vezérlés
-function openLogin() { document.getElementById('login-modal').style.display = 'flex'; }
-function openRegister() { closeModal('login-modal'); document.getElementById('register-modal').style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function closeAll() { closeModal('login-modal'); closeModal('register-modal'); }
-
-function checkStrength(val) {
-    const bar = document.getElementById('strength-bar');
-    let s = val.length > 6 ? 33 : 0;
-    if (/[A-Z]/.test(val)) s += 33;
-    if (/[0-9]/.test(val)) s += 34;
-    bar.style.width = s + "%";
-    bar.style.backgroundColor = s < 50 ? 'red' : (s < 80 ? 'orange' : 'green');
-}
-
-function toggleCompanyFields() {
-    document.getElementById('reg-company').style.display = document.getElementById('user-type').value === 'company' ? 'block' : 'none';
-}
-
-async function handleLogin() {
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-        alert("Hiba: " + error.message);
-    } else {
-        closeModal('login-modal');
-        location.reload(); // Ez frissíti az állapotot, hogy eltűnjön a bejelentkezés gomb
-    }
-}
-
-async function handleRegister() {
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
-    if (password !== document.getElementById('reg-password-confirm').value) return alert("Nem egyeznek a jelszavak!");
-
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    if (error) return alert(error.message);
-
-    const { error: pError } = await supabaseClient.from('profiles').insert([{
-        id: data.user.id,
-        full_name: document.getElementById('reg-fname').value + " " + document.getElementById('reg-lname').value,
-        phone: document.getElementById('reg-phone').value,
-        address: `${document.getElementById('reg-zip').value} ${document.getElementById('reg-city').value}, ${document.getElementById('reg-street').value}`,
-        is_company: document.getElementById('user-type').value === 'company',
-        company_name: document.getElementById('reg-company').value
-    }]);
-
-    if (pError) alert("Profil hiba: " + pError.message); else alert("Sikeres regisztráció!");
-}
-
-
-        // 1. Külön függvény a név lekérésére
-async function updateUserName(userId) {
-    const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('full_name')
-        .eq('id', userId)
-        .single();
-    
-    if (profile) {
-        const fullName = profile.full_name || "Felhasználó";
-        const firstName = fullName.includes(' ') ? fullName.split(' ')[1] : fullName;
-        document.getElementById('user-display').innerText = `Üdvözöllek, ${firstName}!`;
-    }
-}
-
-// 2. Az eseményfigyelő most már csak hívja a függvényt, nem vár rá
-supabaseClient.auth.onAuthStateChange((event, session) => {
-    const user = session?.user;
-    const authBtn = document.getElementById('nav-auth-btn');
-    
-    if (user) {
-        updateUserName(user.id); // Itt hívjuk meg a névfrissítést
-        authBtn.innerText = "Kijelentkezés";
-        authBtn.onclick = handleLogout;
-    } else {
-        document.getElementById('user-display').innerText = "";
-        authBtn.innerText = "Bejelentkezés";
-        authBtn.onclick = openLogin;
-    }
-});
-
-        // --- SHOP LOGIC ---
-        async function loadProducts() {
-            const { data } = await supabaseClient.from('products').select('*').order('id', {ascending: true});
-            const imgs = [
-                "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?w=400",
-                "https://images.pexels.com/photos/1779487/pexels-photo-1779487.jpeg?w=400",
-                "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?w=400"
-            ];
-            document.getElementById('products-container').innerHTML = data.map((p, i) => `
-                <div class="product-card">
-                    <img src="${imgs[i%3]}" class="product-image">
-                    <div class="product-info">
-                        <h3>${p.name}</h3>
-                        <p class="product-price">${Number(p.price).toLocaleString()} Ft</p>
-                        <button class="buy-button" onclick="addToCart('${p.id}','${p.name}',${p.price})">Kosárba</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function toggleCart() {
-            document.getElementById('cart-sidebar').classList.toggle('open');
-            document.getElementById('overlay').classList.toggle('active');
-        }
-
-        function closeAll() {
-            document.getElementById('cart-sidebar').classList.remove('open');
-            document.getElementById('overlay').classList.remove('active');
-        }
-
-        function addToCart(id, name, price) {
-            const item = cart.find(i => i.id === id);
-            if (item) item.qty++; else cart.push({id, name, price, qty: 1});
-            updateUI();
-            if(!document.getElementById('cart-sidebar').classList.contains('open')) toggleCart();
-        }
-
-        function changeQty(id, delta) {
-            const item = cart.find(i => i.id === id);
-            if (item) {
-                item.qty += delta;
-                if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
-            }
-            updateUI();
-        }
-
-        function updateUI() {
-            const list = document.getElementById('cart-items');
-            list.innerHTML = cart.length === 0 ? '<p>Üres a kosarad.</p>' : cart.map(i => `
-                <div class="cart-item">
-                    <div><strong>${i.name}</strong><br><small>${i.price.toLocaleString()} Ft</small></div>
-                    <div class="qty-controls">
-                        <button onclick="changeQty('${i.id}', -1)">-</button>
-                        <span>${i.qty}</span>
-                        <button onclick="changeQty('${i.id}', 1)">+</button>
-                        <button class="remove-btn" onclick="changeQty('${i.id}', -${i.qty})">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            document.getElementById('cart-total').innerText = total.toLocaleString() + " Ft";
-            document.getElementById('cart-count').innerText = cart.reduce((s, i) => s + i.qty, 0);
-        }
-
-        function clearCart() { cart = []; updateUI(); }
-        
-        function showCheckout() {
-            if(cart.length === 0) return;
-            document.getElementById('checkout-form').style.display = 'block';
-            document.getElementById('order-start-btn').style.display = 'none';
-        }
-
-        function finishOrder() {
-            const name = document.getElementById('cust-name').value;
-            if(!name) return alert("Név kötelező!");
-            alert("Rendelés elküldve! Köszönjük, " + name);
-            clearCart(); closeAll();
-            document.getElementById('checkout-form').style.display = 'none';
-            document.getElementById('order-start-btn').style.display = 'block';
-        }
-	// A kijelentkezés módosítása
-	async function handleLogout() {
-    		await supabaseClient.auth.signOut();
-    		location.reload(); // Ez kötelező, hogy az oldal újraolvassa a session-t
-	}
-
-        loadProducts();
-    </script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>
