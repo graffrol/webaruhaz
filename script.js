@@ -23,14 +23,33 @@ let isLoginMode = true;
       }
 
       function checkStrength(val) {
-        const bar = document.getElementById("strength-bar");
-        let s = val.length > 6 ? 33 : 0;
-        if (/[A-Z]/.test(val)) s += 33;
-        if (/[0-9]/.test(val)) s += 34;
-        bar.style.width = s + "%";
-        bar.style.backgroundColor =
-          s < 50 ? "red" : s < 80 ? "orange" : "green";
-      }
+    const textLabel = document.getElementById("strength-text");
+    const bars = [
+        document.getElementById("bar-1"),
+        document.getElementById("bar-2"),
+        document.getElementById("bar-3")
+    ];
+    
+    let strength = 0;
+    if (val.length > 6) strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+
+    // Szöveg frissítése
+    const levels = ["Gyenge", "Közepes", "Erős"];
+    const colors = ["red", "orange", "green"];
+    
+    textLabel.innerText = val.length > 0 ? `Jelszó erőssége: ${levels[strength - 1] || "Gyenge"}` : "Jelszó erőssége: -";
+    
+    // Sávok színezése
+    bars.forEach((bar, index) => {
+        if (index < strength) {
+            bar.style.backgroundColor = colors[strength - 1];
+        } else {
+            bar.style.backgroundColor = "#eee";
+        }
+    });
+}
 
       function toggleCompanyFields() {
         document.getElementById("reg-company").style.display =
@@ -38,6 +57,13 @@ let isLoginMode = true;
             ? "block"
             : "none";
       }
+      // Figyeli, ha az Entert nyomod meg a jelszó mezőben
+document.getElementById("login-password").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault(); // Megakadályozza az oldal alapértelmezett újratöltését
+        handleLogin(); // Meghívja a már meglévő bejelentkező függvényedet
+    }
+});
 
       async function handleLogin() {
         const email = document.getElementById("login-email").value;
@@ -79,8 +105,59 @@ let isLoginMode = true;
         company_name: document.getElementById('reg-company').value
     }]);
 
-    if (pError) alert("Profil hiba: " + pError.message); 
-    else alert("Sikeres regisztráció!");
+    if (pError) {
+        alert("Profil hiba: " + pError.message); 
+    } else {
+        alert("Sikeres regisztráció!");
+        
+        // --- ITT TÖRTÉNIK A VARÁZSLAT ---
+        closeModal("register-modal"); // Bezárja az ablakot
+        
+        // Ez üríti ki az összes mezőt (ezért kellett a <form id="register-form">)
+        document.getElementById("register-form").reset();
+        
+        // Eltünteti az esetleges céges mezőt, ha véletlenül nyitva maradt volna
+        document.getElementById("reg-company").style.display = "none";
+    }
+}
+// A régi helyett ezt használd:
+async function updateProfile(newData) {
+    // Kérdezzük le az aktuális usert
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return alert("Nincs bejelentkezve!");
+
+    const { error } = await supabaseClient
+        .from('profiles')
+        .update(newData)
+        .eq('id', user.id); // Itt használd a user.id-t!
+        
+    if (error) alert("Hiba az adatok mentésekor: " + error.message);
+    else alert("Adatok sikeresen frissítve!");
+}
+async function updatePassword(newPassword) {
+    const { error } = await supabaseClient.auth.updateUser({
+        password: newPassword
+    });
+    if (error) alert("Hiba a jelszó módosításakor!");
+    else alert("Jelszó sikeresen megváltoztatva!");
+}
+function toggleProfileMenu() {
+    const menu = document.getElementById("profile-menu");
+    if (menu.style.display === "none" || menu.style.display === "") {
+        menu.style.display = "block";
+    } else {
+        menu.style.display = "none";
+    }
+}
+
+// Bónusz: Ha máshova kattintasz az oldalon, a menü bezáruljon
+window.onclick = function(event) {
+    if (!event.target.matches('#user-display')) {
+        const menu = document.getElementById("profile-menu");
+        if (menu && menu.style.display === "block") {
+            menu.style.display = "none";
+        }
+    }
 }
 
       // 1. Külön függvény a név lekérésére
@@ -231,20 +308,91 @@ let isLoginMode = true;
         document.getElementById("order-start-btn").style.display = "none";
       }
 
-      function finishOrder() {
-        const name = document.getElementById("cust-name").value;
-        if (!name) return alert("Név kötelező!");
-        alert("Rendelés elküldve! Köszönjük, " + name);
+      async function finishOrder() {
+    // 1. User azonosítása
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) return alert("Kérlek jelentkezz be a rendeléshez!");
+
+    // 2. Profiladatok lekérése az adatbázisból
+    const { data: profile, error: pError } = await supabaseClient
+        .from('profiles')
+        .select('full_name, address')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (pError || !profile) return alert("Hiba a felhasználói adatok lekérésekor!");
+
+    // 3. Mentés az orders táblába a profilból jövő adatokkal
+    const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
+    const { error } = await supabaseClient.from('orders').insert([{
+        user_id: user.id,
+        total_price: total,
+        items: JSON.stringify(cart),
+        shipping_name: profile.full_name, // Innen jön a név
+        shipping_addr: profile.address,   // Innen jön a cím
+        status: 'feldolgozás alatt'
+    }]);
+
+    if (error) {
+        alert("Hiba a rendelés során: " + error.message);
+    } else {
+        alert("Köszönjük a rendelésed, " + profile.full_name + "!");
         clearCart();
         closeAll();
         document.getElementById("checkout-form").style.display = "none";
         document.getElementById("order-start-btn").style.display = "block";
-      }
+    }
+}
       // A kijelentkezés módosítása
       async function handleLogout() {
-        await supabaseClient.auth.signOut();
-        location.reload(); // Ez kötelező, hogy az oldal újraolvassa a session-t
-      }
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        console.error("Hiba a kijelentkezéskor:", error);
+    } else {
+        // Töröljük a nevet és frissítjük az oldalt
+        document.getElementById('user-display').innerText = "";
+        location.reload(); // Oldal újratöltése a kijelentkezés érvényesítéséhez
+    }
+}
+async function showPurchases() {
+    document.getElementById("profile-menu").style.display = "none";
+    const modal = document.getElementById("purchases-modal");
+    modal.style.display = "flex";
+    
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    const { data, error } = await supabaseClient
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+    const list = document.getElementById("purchases-list");
+    if (error || !data || data.length === 0) {
+        list.innerHTML = "<p>Még nem rendeltél semmit.</p>";
+        return;
+    }
+
+    list.innerHTML = data.map(order => {
+        // JSON parse a termékek kibontásához
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        const itemsList = items.map(item => 
+            `<li>${item.name} (${item.qty} db) - ${(item.price * item.qty).toLocaleString()} Ft</li>`
+        ).join("");
+
+        return `
+            <div class="order-item" style="border-bottom: 2px solid #eee; padding: 15px 0;">
+                <p><strong>Dátum:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+                <p><strong>Összeg:</strong> ${order.total_price.toLocaleString()} Ft</p>
+                <p><strong>Állapot:</strong> ${order.status}</p>
+                <p><strong>Termékek:</strong></p>
+                <ul style="margin: 5px 0; padding-left: 20px;">${itemsList}</ul>
+            </div>
+        `;
+    }).join("");
+}
 
       loadProducts();
     

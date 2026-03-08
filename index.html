@@ -41,7 +41,26 @@
         </p>
       </div>
     </div>
-
+    <div id="purchases-modal" class="modal">
+      <div
+        class="modal-content"
+        style="width: 450px; max-height: 80vh; overflow-y: auto"
+      >
+        <span
+          style="
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 24px;
+          "
+          onclick="closeModal('purchases-modal')"
+          >×</span
+        >
+        <h2>Vásárlásaim</h2>
+        <div id="purchases-list"></div>
+      </div>
+    </div>
     <div id="register-modal" class="modal">
       <div
         class="modal-content"
@@ -59,38 +78,47 @@
           >×</span
         >
         <h2>Regisztráció</h2>
-        <select id="user-type" onchange="toggleCompanyFields()">
-          <option value="individual">Magánszemély</option>
-          <option value="company">Cég</option>
-        </select>
-        <input
-          type="text"
-          id="reg-company"
-          placeholder="Cégnév"
-          style="display: none"
-        />
-        <input type="text" id="reg-fname" placeholder="Vezetéknév" />
-        <input type="text" id="reg-lname" placeholder="Keresztnév" />
-        <input type="tel" id="reg-phone" placeholder="Telefonszám" />
-        <input type="text" id="reg-zip" placeholder="Irányítószám" />
-        <input type="text" id="reg-city" placeholder="Település" />
-        <input type="text" id="reg-street" placeholder="Utca, Házszám" />
-        <input type="email" id="reg-email" placeholder="E-mail cím" />
-        <input
-          type="password"
-          id="reg-password"
-          placeholder="Jelszó"
-          oninput="checkStrength(this.value)"
-        />
+        <form id="register-form">
+          <select id="user-type" onchange="toggleCompanyFields()">
+            <option value="individual">Magánszemély</option>
+            <option value="company">Cég</option>
+          </select>
+          <input
+            type="text"
+            id="reg-company"
+            placeholder="Cégnév"
+            style="display: none"
+          />
+          <input type="text" id="reg-fname" placeholder="Vezetéknév" />
+          <input type="text" id="reg-lname" placeholder="Keresztnév" />
+          <input type="tel" id="reg-phone" placeholder="Telefonszám" />
+          <input type="text" id="reg-zip" placeholder="Irányítószám" />
+          <input type="text" id="reg-city" placeholder="Település" />
+          <input type="text" id="reg-street" placeholder="Utca, Házszám" />
+          <input type="email" id="reg-email" placeholder="E-mail cím" />
+          <input
+            type="password"
+            id="reg-password"
+            placeholder="Jelszó"
+            oninput="checkStrength(this.value)"
+          />
+        </form>
+        <div
+          id="strength-text"
+          style="font-size: 0.8rem; margin-bottom: 5px; color: #7f8c8d"
+        >
+          Jelszó erőssége:
+        </div>
+
         <div
           id="strength-meter"
-          style="height: 5px; background: #eee; margin-bottom: 10px"
+          style="display: flex; gap: 5px; height: 5px; margin-bottom: 10px"
         >
-          <div
-            id="strength-bar"
-            style="width: 0; height: 100%; transition: 0.3s"
-          ></div>
+          <div class="bar" id="bar-1" style="flex: 1; background: #eee"></div>
+          <div class="bar" id="bar-2" style="flex: 1; background: #eee"></div>
+          <div class="bar" id="bar-3" style="flex: 1; background: #eee"></div>
         </div>
+
         <input
           type="password"
           id="reg-password-confirm"
@@ -105,7 +133,35 @@
     <header>
       <div style="font-size: 1.5rem; font-weight: bold">Webshop</div>
       <div class="nav-btns">
-        <span id="user-display" style="font-size: 0.8rem"></span>
+        <div class="nav-btns">
+          <div class="dropdown">
+            <span
+              id="user-display"
+              onclick="toggleProfileMenu()"
+              style="cursor: pointer; font-weight: bold; margin-right: 15px"
+            ></span>
+            <div
+              id="profile-menu"
+              class="dropdown-content"
+              style="
+                display: none;
+                position: absolute;
+                right: 0;
+                background: #fff;
+                border: 1px solid #ccc;
+                padding: 10px;
+              "
+            >
+              <button onclick="showPurchases()">Vásárlásaim</button>
+              <button onclick="showProfileSettings()">
+                Adataim módosítása
+              </button>
+              <button onclick="handleLogout()" style="color: red">
+                Kijelentkezés
+              </button>
+            </div>
+          </div>
+        </div>
         <button id="nav-auth-btn" class="btn-action" onclick="openLogin()">
           Bejelentkezés
         </button>
@@ -139,8 +195,6 @@
         </button>
 
         <div id="checkout-form">
-          <input type="text" id="cust-name" placeholder="Teljes név" />
-          <input type="text" id="cust-addr" placeholder="Szállítási cím" />
           <button
             class="buy-button"
             style="background: var(--dark); width: 100%"
